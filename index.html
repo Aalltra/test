@@ -1,0 +1,948 @@
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QMD Esport - Plateforme Valorant</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="logo-container">
+                <img src="/CE8202C0-9156-4B9E-B217-F477251A6BC0_1.jpg" alt="QMD Esport Logo" class="logo">
+                <h1>QMD Esport</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" @click.prevent="currentPage = 'home'" :class="{ active: currentPage === 'home' }">Accueil</a></li>
+                    <li><a href="#" @click.prevent="currentPage = 'players'" :class="{ active: currentPage === 'players' }">Joueurs LFT</a></li>
+                    <li><a href="#" @click.prevent="currentPage = 'teams'" :class="{ active: currentPage === 'teams' }">Équipes LFP</a></li>
+                    <li><a href="#" @click.prevent="currentPage = 'scrims'" :class="{ active: currentPage === 'scrims' }">Scrims</a></li>
+                    <li><a href="#" @click.prevent="currentPage = 'groups'" :class="{ active: currentPage === 'groups' }">Groupes</a></li>
+                </ul>
+            </nav>
+            <div class="auth-buttons">
+                <button v-if="!isLoggedIn" @click="showLoginModal = true" class="btn-login">Connexion</button>
+                <button v-if="!isLoggedIn" @click="showRegisterModal = true" class="btn-register">Inscription</button>
+                <div v-if="isLoggedIn" class="user-profile">
+                    <span @click="toggleUserMenu" class="user-name">
+                        {{ currentUser.username }}
+                        <span v-if="currentUser.isOfficial" class="official-badge">Compte Officiel</span>
+                    </span>
+                    <div v-if="showUserMenu" class="user-menu">
+                        <a href="#" @click.prevent="currentPage = 'profile'">Mon Profil</a>
+                        <a href="#" @click.prevent="currentPage = 'my-posts'">Mes Annonces</a>
+                        <a href="#" @click.prevent="logout">Déconnexion</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Home Page -->
+            <section v-if="currentPage === 'home'" class="home-section">
+                <div class="hero">
+                    <h2>Trouvez votre équipe idéale sur Valorant</h2>
+                    <p>QMD Esport vous aide à connecter avec d'autres joueurs et équipes pour améliorer votre expérience de jeu.</p>
+                    <div class="cta-buttons">
+                        <button @click="currentPage = 'players'" class="cta-button">Trouver des joueurs</button>
+                        <button @click="currentPage = 'teams'" class="cta-button">Rejoindre une équipe</button>
+                        <button @click="currentPage = 'scrims'" class="cta-button">Organiser des scrims</button>
+                    </div>
+                </div>
+                
+                <div class="features">
+                    <div class="feature-card">
+                        <i class="fas fa-user-friends feature-icon"></i>
+                        <h3>Trouvez des coéquipiers</h3>
+                        <p>Parcourez les profils de joueurs cherchant une équipe et trouvez le talent qui vous manque.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-users feature-icon"></i>
+                        <h3>Rejoignez une équipe</h3>
+                        <p>Consultez les équipes en recrutement et rejoignez celle qui correspond à vos ambitions.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-gamepad feature-icon"></i>
+                        <h3>Organisez des scrims</h3>
+                        <p>Défiez d'autres équipes pour vous entraîner et améliorer vos stratégies ensemble.</p>
+                    </div>
+                </div>
+                
+                <div class="recent-activity">
+                    <h2>Activité récente</h2>
+                    <div class="activity-feeds">
+                        <div class="activity-column">
+                            <h3>Derniers joueurs LFT</h3>
+                            <div v-for="player in recentPlayers" :key="player.id" class="activity-card">
+                                <div class="activity-header">
+                                    <span class="player-name">{{ player.username }}</span>
+                                    <span class="player-rank">{{ player.rank }}</span>
+                                </div>
+                                <p class="activity-description">{{ player.description.substring(0, 100) }}...</p>
+                                <button @click="viewPlayerDetails(player.id)" class="view-more">Voir plus</button>
+                            </div>
+                        </div>
+                        <div class="activity-column">
+                            <h3>Dernières équipes LFP</h3>
+                            <div v-for="team in recentTeams" :key="team.id" class="activity-card">
+                                <div class="activity-header">
+                                    <span class="team-name">{{ team.name }}</span>
+                                    <span class="team-level">{{ team.level }}</span>
+                                </div>
+                                <p class="activity-description">{{ team.description.substring(0, 100) }}...</p>
+                                <button @click="viewTeamDetails(team.id)" class="view-more">Voir plus</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Players LFT Section -->
+            <section v-if="currentPage === 'players'" class="players-section">
+                <div class="section-header">
+                    <h2>Joueurs à la recherche d'une équipe</h2>
+                    <button v-if="isLoggedIn" @click="showCreateLftModal = true" class="create-post-btn">
+                        <i class="fas fa-plus"></i> Créer une annonce LFT
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="rankFilter">Rang:</label>
+                        <select id="rankFilter" v-model="filters.rank">
+                            <option value="">Tous les rangs</option>
+                            <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="roleFilter">Rôle:</label>
+                        <select id="roleFilter" v-model="filters.role">
+                            <option value="">Tous les rôles</option>
+                            <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="langFilter">Langue:</label>
+                        <select id="langFilter" v-model="filters.language">
+                            <option value="">Toutes les langues</option>
+                            <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <button @click="resetFilters" class="reset-filters">Réinitialiser</button>
+                </div>
+
+                <div class="players-list">
+                    <div v-for="player in filteredPlayers" :key="player.id" class="player-card">
+                        <div class="player-header">
+                            <h3>{{ player.username }}</h3>
+                            <span class="player-rank">{{ player.rank }}</span>
+                        </div>
+                        <div class="player-info">
+                            <p><strong>Rôle:</strong> {{ player.role }}</p>
+                            <p><strong>Agents:</strong> {{ player.agents.join(', ') }}</p>
+                            <p><strong>Langue:</strong> {{ player.language }}</p>
+                            <p><strong>Disponibilité:</strong> {{ player.availability }}</p>
+                        </div>
+                        <p class="player-description">{{ player.description }}</p>
+                        <div class="player-actions">
+                            <button @click="contactPlayer(player.id)" class="contact-btn">Contacter</button>
+                            <span class="post-date">Posté le {{ formatDate(player.createdAt) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="filteredPlayers.length === 0" class="no-results">
+                    Aucun joueur ne correspond à vos critères de recherche.
+                </div>
+            </section>
+
+            <!-- Teams LFP Section -->
+            <section v-if="currentPage === 'teams'" class="teams-section">
+                <div class="section-header">
+                    <h2>Équipes à la recherche de joueurs</h2>
+                    <button v-if="isLoggedIn" @click="showCreateLfpModal = true" class="create-post-btn">
+                        <i class="fas fa-plus"></i> Créer une annonce LFP
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="levelFilter">Niveau:</label>
+                        <select id="levelFilter" v-model="filters.level">
+                            <option value="">Tous les niveaux</option>
+                            <option v-for="level in levels" :key="level" :value="level">{{ level }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="teamRoleFilter">Rôle recherché:</label>
+                        <select id="teamRoleFilter" v-model="filters.roleNeeded">
+                            <option value="">Tous les rôles</option>
+                            <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="teamLangFilter">Langue:</label>
+                        <select id="teamLangFilter" v-model="filters.language">
+                            <option value="">Toutes les langues</option>
+                            <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <button @click="resetFilters" class="reset-filters">Réinitialiser</button>
+                </div>
+
+                <div class="teams-list">
+                    <div v-for="team in filteredTeams" :key="team.id" class="team-card">
+                        <div class="team-header">
+                            <h3>{{ team.name }}</h3>
+                            <span class="team-level">{{ team.level }}</span>
+                        </div>
+                        <div class="team-info">
+                            <p><strong>Rôle recherché:</strong> {{ team.roleNeeded }}</p>
+                            <p><strong>Rang minimum:</strong> {{ team.minRank }}</p>
+                            <p><strong>Langue:</strong> {{ team.language }}</p>
+                            <p><strong>Horaires d'entraînement:</strong> {{ team.practiceSchedule }}</p>
+                        </div>
+                        <p class="team-description">{{ team.description }}</p>
+                        <div class="team-actions">
+                            <button @click="contactTeam(team.id)" class="contact-btn">Contacter</button>
+                            <span class="post-date">Posté le {{ formatDate(team.createdAt) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="filteredTeams.length === 0" class="no-results">
+                    Aucune équipe ne correspond à vos critères de recherche.
+                </div>
+            </section>
+
+            <!-- Scrims Section -->
+            <section v-if="currentPage === 'scrims'" class="scrims-section">
+                <div class="section-header">
+                    <h2>Scrims - Recherche de matchs d'entraînement</h2>
+                    <button v-if="isLoggedIn" @click="showCreateScrimModal = true" class="create-post-btn">
+                        <i class="fas fa-plus"></i> Proposer un scrim
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="scrimLevelFilter">Niveau:</label>
+                        <select id="scrimLevelFilter" v-model="filters.level">
+                            <option value="">Tous les niveaux</option>
+                            <option v-for="level in levels" :key="level" :value="level">{{ level }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="dateFilter">Date:</label>
+                        <input type="date" id="dateFilter" v-model="filters.date">
+                    </div>
+                    <button @click="resetFilters" class="reset-filters">Réinitialiser</button>
+                </div>
+
+                <div class="calendar-view">
+                    <div class="calendar-header">
+                        <button @click="previousWeek" class="calendar-nav"><i class="fas fa-chevron-left"></i></button>
+                        <h3>{{ calendarTitle }}</h3>
+                        <button @click="nextWeek" class="calendar-nav"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="calendar-day-names">
+                            <div v-for="day in weekDays" :key="day" class="day-name">{{ day }}</div>
+                        </div>
+                        <div class="calendar-days">
+                            <div v-for="(date, index) in calendarDates" :key="index" class="calendar-day">
+                                <div class="day-header">{{ formatCalendarDate(date) }}</div>
+                                <div class="day-scrims">
+                                    <div v-for="scrim in getScrimsForDate(date)" :key="scrim.id" class="scrim-event" :class="{'is-available': scrim.status === 'available', 'is-booked': scrim.status === 'booked'}" @click="viewScrimDetails(scrim.id)">
+                                        <div class="scrim-time">{{ formatScrimTime(scrim.time) }}</div>
+                                        <div class="scrim-team">{{ scrim.teamName }}</div>
+                                        <div class="scrim-level">{{ scrim.level }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="scrims-list">
+                    <h3>Propositions de scrims</h3>
+                    <div v-for="scrim in filteredScrims" :key="scrim.id" class="scrim-card" :class="{'is-available': scrim.status === 'available', 'is-booked': scrim.status === 'booked'}">
+                        <div class="scrim-header">
+                            <h4>{{ scrim.teamName }}</h4>
+                            <span class="scrim-status">{{ scrim.status === 'available' ? 'Disponible' : 'Réservé' }}</span>
+                        </div>
+                        <div class="scrim-info">
+                            <p><strong>Date:</strong> {{ formatDate(scrim.date) }}</p>
+                            <p><strong>Heure:</strong> {{ formatScrimTime(scrim.time) }}</p>
+                            <p><strong>Niveau:</strong> {{ scrim.level }}</p>
+                            <p><strong>Format:</strong> {{ scrim.format }}</p>
+                        </div>
+                        <p class="scrim-description">{{ scrim.description }}</p>
+                        <div class="scrim-actions">
+                            <button v-if="scrim.status === 'available'" @click="bookScrim(scrim.id)" class="book-btn">Réserver</button>
+                            <button @click="contactScrimTeam(scrim.id)" class="contact-btn">Contacter</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="filteredScrims.length === 0" class="no-results">
+                    Aucun scrim ne correspond à vos critères de recherche.
+                </div>
+            </section>
+
+            <!-- Groups Section -->
+            <section v-if="currentPage === 'groups'" class="groups-section">
+                <div class="section-header">
+                    <h2>Groupes - Trouver des joueurs pour jouer</h2>
+                    <button v-if="isLoggedIn" @click="showCreateGroupModal = true" class="create-post-btn">
+                        <i class="fas fa-plus"></i> Créer un groupe
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="groupSizeFilter">Taille:</label>
+                        <select id="groupSizeFilter" v-model="filters.size">
+                            <option value="">Toutes tailles</option>
+                            <option value="1">1 joueur recherché</option>
+                            <option value="2">2 joueurs recherchés</option>
+                            <option value="3">3 joueurs recherchés</option>
+                            <option value="4">4 joueurs recherchés</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="groupRankFilter">Rang:</label>
+                        <select id="groupRankFilter" v-model="filters.rank">
+                            <option value="">Tous les rangs</option>
+                            <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="groupLangFilter">Langue:</label>
+                        <select id="groupLangFilter" v-model="filters.language">
+                            <option value="">Toutes les langues</option>
+                            <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <button @click="resetFilters" class="reset-filters">Réinitialiser</button>
+                </div>
+
+                <div class="groups-list">
+                    <div v-for="group in filteredGroups" :key="group.id" class="group-card">
+                        <div class="group-header">
+                            <h3>Groupe de {{ group.currentSize }}/5</h3>
+                            <span class="group-rank">{{ group.rank }}</span>
+                        </div>
+                        <div class="group-info">
+                            <p><strong>Recherche:</strong> {{ group.playersNeeded }} joueur(s)</p>
+                            <p><strong>Langue:</strong> {{ group.language }}</p>
+                            <p><strong>Mode:</strong> {{ group.gameMode }}</p>
+                            <p><strong>Disponibilité:</strong> {{ group.availability }}</p>
+                        </div>
+                        <div class="group-members">
+                            <div v-for="(member, index) in group.members" :key="index" class="group-member">
+                                <span class="member-name">{{ member.username }}</span>
+                                <span class="member-role">{{ member.role }}</span>
+                            </div>
+                        </div>
+                        <p class="group-description">{{ group.description }}</p>
+                        <div class="group-actions">
+                            <button @click="joinGroup(group.id)" class="join-btn">Rejoindre</button>
+                            <button @click="contactGroup(group.id)" class="contact-btn">Contacter</button>
+                            <span class="post-date">Posté il y a {{ formatTimeAgo(group.createdAt) }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="filteredGroups.length === 0" class="no-results">
+                    Aucun groupe ne correspond à vos critères de recherche.
+                </div>
+            </section>
+
+            <!-- Profile Page -->
+            <section v-if="currentPage === 'profile'" class="profile-section">
+                <h2>Mon Profil</h2>
+                <div class="profile-container">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <h3>{{ currentUser.username }}</h3>
+                            <span v-if="currentUser.isOfficial" class="official-badge">Compte Officiel</span>
+                        </div>
+                        <div class="profile-info">
+                            <div class="info-group">
+                                <label>Pseudo:</label>
+                                <input type="text" v-model="profileData.username" :disabled="!editMode">
+                            </div>
+                            <div class="info-group">
+                                <label>Rang:</label>
+                                <select v-model="profileData.rank" :disabled="!editMode">
+                                    <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                                </select>
+                            </div>
+                            <div class="info-group">
+                                <label>Rôle préféré:</label>
+                                <select v-model="profileData.role" :disabled="!editMode">
+                                    <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                                </select>
+                            </div>
+                            <div class="info-group">
+                                <label>Agents:</label>
+                                <div class="agents-selection">
+                                    <div v-for="agent in agents" :key="agent" class="agent-checkbox">
+                                        <input type="checkbox" :id="agent" :value="agent" v-model="profileData.agents" :disabled="!editMode">
+                                        <label :for="agent">{{ agent }}</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="info-group">
+                                <label>Discord:</label>
+                                <input type="text" v-model="profileData.discord" :disabled="!editMode">
+                            </div>
+                            <div class="info-group">
+                                <label>À propos de moi:</label>
+                                <textarea v-model="profileData.about" :disabled="!editMode"></textarea>
+                            </div>
+                            <div class="info-group">
+                                <label>Disponibilité:</label>
+                                <textarea v-model="profileData.availability" :disabled="!editMode"></textarea>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <button v-if="!editMode" @click="editMode = true" class="edit-btn">Modifier</button>
+                            <button v-if="editMode" @click="saveProfile" class="save-btn">Sauvegarder</button>
+                            <button v-if="editMode" @click="cancelEdit" class="cancel-btn">Annuler</button>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-stats">
+                        <h3>Mes Statistiques</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">{{ userStats.postsCount }}</div>
+                                <div class="stat-label">Annonces créées</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">{{ userStats.messagesCount }}</div>
+                                <div class="stat-label">Messages envoyés</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">{{ userStats.joinedDate }}</div>
+                                <div class="stat-label">Membre depuis</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Posts Section -->
+            <section v-if="currentPage === 'my-posts'" class="my-posts-section">
+                <h2>Mes Annonces</h2>
+                <div class="my-posts-tabs">
+                    <button :class="{ active: myPostsTab === 'lft' }" @click="myPostsTab = 'lft'">LFT - Recherche d'équipe</button>
+                    <button :class="{ active: myPostsTab === 'lfp' }" @click="myPostsTab = 'lfp'">LFP - Recherche de joueurs</button>
+                    <button :class="{ active: myPostsTab === 'scrims' }" @click="myPostsTab = 'scrims'">Scrims</button>
+                    <button :class="{ active: myPostsTab === 'groups' }" @click="myPostsTab = 'groups'">Groupes</button>
+                </div>
+                
+                <div v-if="myPostsTab === 'lft'" class="my-lft-posts">
+                    <div v-if="myLftPosts.length === 0" class="no-posts">
+                        Vous n'avez pas d'annonce LFT active. <button @click="showCreateLftModal = true" class="create-post-btn-inline">Créer une annonce</button>
+                    </div>
+                    <div v-for="post in myLftPosts" :key="post.id" class="my-post-card">
+                        <div class="post-header">
+                            <h3>LFT - {{ post.title }}</h3>
+                            <span class="post-status" :class="post.active ? 'active-status' : 'inactive-status'">
+                                {{ post.active ? 'Active' : 'Inactive' }}
+                            </span>
+                        </div>
+                        <div class="post-content">
+                            <p><strong>Rang:</strong> {{ post.rank }}</p>
+                            <p><strong>Rôle:</strong> {{ post.role }}</p>
+                            <p><strong>Description:</strong> {{ post.description }}</p>
+                            <p><strong>Créée le:</strong> {{ formatDate(post.createdAt) }}</p>
+                        </div>
+                        <div class="post-actions">
+                            <button @click="editLftPost(post.id)" class="edit-post-btn">Modifier</button>
+                            <button @click="togglePostStatus(post.id, 'lft')" class="toggle-status-btn">
+                                {{ post.active ? 'Désactiver' : 'Activer' }}
+                            </button>
+                            <button @click="deletePost(post.id, 'lft')" class="delete-post-btn">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="myPostsTab === 'lfp'" class="my-lfp-posts">
+                    <div v-if="myLfpPosts.length === 0" class="no-posts">
+                        Vous n'avez pas d'annonce LFP active. <button @click="showCreateLfpModal = true" class="create-post-btn-inline">Créer une annonce</button>
+                    </div>
+                    <div v-for="post in myLfpPosts" :key="post.id" class="my-post-card">
+                        <div class="post-header">
+                            <h3>{{ post.teamName }} - Recherche {{ post.roleNeeded }}</h3>
+                            <span class="post-status" :class="post.active ? 'active-status' : 'inactive-status'">
+                                {{ post.active ? 'Active' : 'Inactive' }}
+                            </span>
+                        </div>
+                        <div class="post-content">
+                            <p><strong>Niveau:</strong> {{ post.level }}</p>
+                            <p><strong>Rang minimum:</strong> {{ post.minRank }}</p>
+                            <p><strong>Description:</strong> {{ post.description }}</p>
+                            <p><strong>Créée le:</strong> {{ formatDate(post.createdAt) }}</p>
+                        </div>
+                        <div class="post-actions">
+                            <button @click="editLfpPost(post.id)" class="edit-post-btn">Modifier</button>
+                            <button @click="togglePostStatus(post.id, 'lfp')" class="toggle-status-btn">
+                                {{ post.active ? 'Désactiver' : 'Activer' }}
+                            </button>
+                            <button @click="deletePost(post.id, 'lfp')" class="delete-post-btn">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="myPostsTab === 'scrims'" class="my-scrims-posts">
+                    <div v-if="myScrims.length === 0" class="no-posts">
+                        Vous n'avez pas de proposition de scrim active. <button @click="showCreateScrimModal = true" class="create-post-btn-inline">Créer une annonce</button>
+                    </div>
+                    <div v-for="scrim in myScrims" :key="scrim.id" class="my-post-card">
+                        <div class="post-header">
+                            <h3>Scrim - {{ scrim.teamName }}</h3>
+                            <span class="post-status" :class="{'available-status': scrim.status === 'available', 'booked-status': scrim.status === 'booked'}">
+                                {{ scrim.status === 'available' ? 'Disponible' : 'Réservé' }}
+                            </span>
+                        </div>
+                        <div class="post-content">
+                            <p><strong>Date:</strong> {{ formatDate(scrim.date) }}</p>
+                            <p><strong>Heure:</strong> {{ formatScrimTime(scrim.time) }}</p>
+                            <p><strong>Niveau:</strong> {{ scrim.level }}</p>
+                            <p><strong>Format:</strong> {{ scrim.format }}</p>
+                            <p v-if="scrim.status === 'booked'"><strong>Réservé par:</strong> {{ scrim.bookedBy }}</p>
+                        </div>
+                        <div class="post-actions">
+                            <button @click="editScrim(scrim.id)" class="edit-post-btn">Modifier</button>
+                            <button v-if="scrim.status === 'booked'" @click="cancelScrimBooking(scrim.id)" class="cancel-booking-btn">Annuler la réservation</button>
+                            <button @click="deletePost(scrim.id, 'scrims')" class="delete-post-btn">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div v-if="myPostsTab === 'groups'" class="my-groups-posts">
+                    <div v-if="myGroups.length === 0" class="no-posts">
+                        Vous n'avez pas de groupe actif. <button @click="showCreateGroupModal = true" class="create-post-btn-inline">Créer un groupe</button>
+                    </div>
+                    <div v-for="group in myGroups" :key="group.id" class="my-post-card">
+                        <div class="post-header">
+                            <h3>Groupe de {{ group.currentSize }}/5</h3>
+                            <span class="post-status" :class="group.active ? 'active-status' : 'inactive-status'">
+                                {{ group.active ? 'Actif' : 'Inactif' }}
+                            </span>
+                        </div>
+                        <div class="post-content">
+                            <p><strong>Recherche:</strong> {{ group.playersNeeded }} joueur(s)</p>
+                            <p><strong>Rang:</strong> {{ group.rank }}</p>
+                            <p><strong>Mode:</strong> {{ group.gameMode }}</p>
+                            <p><strong>Description:</strong> {{ group.description }}</p>
+                        </div>
+                        <div class="group-members">
+                            <h4>Membres:</h4>
+                            <div v-for="(member, index) in group.members" :key="index" class="group-member-item">
+                                <span class="member-name">{{ member.username }}</span>
+                                <span class="member-role">{{ member.role }}</span>
+                                <button v-if="member.id !== currentUser.id" @click="removeMember(group.id, member.id)" class="remove-member-btn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="post-actions">
+                            <button @click="editGroup(group.id)" class="edit-post-btn">Modifier</button>
+                            <button @click="togglePostStatus(group.id, 'groups')" class="toggle-status-btn">
+                                {{ group.active ? 'Désactiver' : 'Activer' }}
+                            </button>
+                            <button @click="deletePost(group.id, 'groups')" class="delete-post-btn">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modals -->
+        <!-- Login Modal -->
+        <div v-if="showLoginModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Connexion</h3>
+                    <button @click="showLoginModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="loginUsername">Nom d'utilisateur</label>
+                        <input type="text" id="loginUsername" v-model="loginForm.username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Mot de passe</label>
+                        <input type="password" id="loginPassword" v-model="loginForm.password" required>
+                    </div>
+                    <div v-if="loginError" class="form-error">{{ loginError }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="login" class="btn-primary">Se connecter</button>
+                    <p>Pas encore de compte? <a href="#" @click.prevent="showRegisterModal = true; showLoginModal = false">S'inscrire</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Modal -->
+        <div v-if="showRegisterModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Inscription</h3>
+                    <button @click="showRegisterModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="registerUsername">Nom d'utilisateur *</label>
+                        <input type="text" id="registerUsername" v-model="registerForm.username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email *</label>
+                        <input type="email" id="registerEmail" v-model="registerForm.email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Mot de passe *</label>
+                        <input type="password" id="registerPassword" v-model="registerForm.password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirmPassword">Confirmer le mot de passe *</label>
+                        <input type="password" id="registerConfirmPassword" v-model="registerForm.confirmPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerRank">Rang Valorant *</label>
+                        <select id="registerRank" v-model="registerForm.rank" required>
+                            <option value="">Sélectionnez votre rang</option>
+                            <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerRole">Rôle préféré *</label>
+                        <select id="registerRole" v-model="registerForm.role" required>
+                            <option value="">Sélectionnez votre rôle</option>
+                            <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Agents joués</label>
+                        <div class="agents-selection">
+                            <div v-for="agent in agents" :key="agent" class="agent-checkbox">
+                                <input type="checkbox" :id="'register-'+agent" :value="agent" v-model="registerForm.agents">
+                                <label :for="'register-'+agent">{{ agent }}</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerDiscord">Discord</label>
+                        <input type="text" id="registerDiscord" v-model="registerForm.discord" placeholder="username#0000">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerAbout">À propos de vous</label>
+                        <textarea id="registerAbout" v-model="registerForm.about"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerAvailability">Disponibilité</label>
+                        <textarea id="registerAvailability" v-model="registerForm.availability" placeholder="Ex: Soirs et weekends"></textarea>
+                    </div>
+                    <div v-if="registerError" class="form-error">{{ registerError }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="register" class="btn-primary" :disabled="isLoading">
+                        <span v-if="isLoading">Chargement...</span>
+                        <span v-else>S'inscrire</span>
+                    </button>
+                    <p>Déjà un compte? <a href="#" @click.prevent="showLoginModal = true; showRegisterModal = false">Se connecter</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create LFT Modal -->
+        <div v-if="showCreateLftModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Créer une annonce LFT</h3>
+                    <button @click="showCreateLftModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="lftTitle">Titre</label>
+                        <input type="text" id="lftTitle" v-model="lftForm.title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lftRank">Rang</label>
+                        <select id="lftRank" v-model="lftForm.rank" required>
+                            <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lftRole">Rôle</label>
+                        <select id="lftRole" v-model="lftForm.role" required>
+                            <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Agents</label>
+                        <div class="agents-selection">
+                            <div v-for="agent in agents" :key="agent" class="agent-checkbox">
+                                <input type="checkbox" :id="'lft-'+agent" :value="agent" v-model="lftForm.agents">
+                                <label :for="'lft-'+agent">{{ agent }}</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="lftLanguage">Langue</label>
+                        <select id="lftLanguage" v-model="lftForm.language" required>
+                            <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lftAvailability">Disponibilité</label>
+                        <textarea id="lftAvailability" v-model="lftForm.availability" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="lftDescription">Description</label>
+                        <textarea id="lftDescription" v-model="lftForm.description" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="createLftPost" class="btn-primary">Publier</button>
+                    <button @click="showCreateLftModal = false" class="btn-secondary">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create LFP Modal -->
+        <div v-if="showCreateLfpModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Créer une annonce LFP</h3>
+                    <button @click="showCreateLfpModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="lfpTeamName">Nom de l'équipe</label>
+                        <input type="text" id="lfpTeamName" v-model="lfpForm.teamName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lfpLevel">Niveau de l'équipe</label>
+                        <select id="lfpLevel" v-model="lfpForm.level" required>
+                            <option v-for="level in levels" :key="level" :value="level">{{ level }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lfpRoleNeeded">Rôle recherché</label>
+                        <select id="lfpRoleNeeded" v-model="lfpForm.roleNeeded" required>
+                            <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lfpMinRank">Rang minimum</label>
+                        <select id="lfpMinRank" v-model="lfpForm.minRank" required>
+                            <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lfpLanguage">Langue</label>
+                        <select id="lfpLanguage" v-model="lfpForm.language" required>
+                            <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lfpPracticeSchedule">Horaires d'entraînement</label>
+                        <textarea id="lfpPracticeSchedule" v-model="lfpForm.practiceSchedule" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="lfpDescription">Description</label>
+                        <textarea id="lfpDescription" v-model="lfpForm.description" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="createLfpPost" class="btn-primary">Publier</button>
+                    <button @click="showCreateLfpModal = false" class="btn-secondary">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Scrim Modal -->
+        <div v-if="showCreateScrimModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Proposer un scrim</h3>
+                    <button @click="showCreateScrimModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="scrimTeamName">Nom de l'équipe</label>
+                        <input type="text" id="scrimTeamName" v-model="scrimForm.teamName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="scrimDate">Date</label>
+                        <input type="date" id="scrimDate" v-model="scrimForm.date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="scrimTime">Heure</label>
+                        <input type="time" id="scrimTime" v-model="scrimForm.time" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="scrimLevel">Niveau</label>
+                        <select id="scrimLevel" v-model="scrimForm.level" required>
+                            <option v-for="level in levels" :key="level" :value="level">{{ level }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="scrimFormat">Format</label>
+                        <select id="scrimFormat" v-model="scrimForm.format" required>
+                            <option value="BO1">BO1</option>
+                            <option value="BO3">BO3</option>
+                            <option value="BO5">BO5</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="scrimDescription">Description</label>
+                        <textarea id="scrimDescription" v-model="scrimForm.description" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="createScrim" class="btn-primary">Publier</button>
+                    <button @click="showCreateScrimModal = false" class="btn-secondary">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Group Modal -->
+        <div v-if="showCreateGroupModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Créer un groupe</h3>
+                    <button @click="showCreateGroupModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="groupRank">Rang</label>
+                        <select id="groupRank" v-model="groupForm.rank" required>
+                            <option v-for="rank in ranks" :key="rank" :value="rank">{{ rank }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="groupSize">Nombre de joueurs recherchés</label>
+                        <select id="groupSize" v-model="groupForm.playersNeeded" required>
+                            <option value="1">1 joueur</option>
+                            <option value="2">2 joueurs</option>
+                            <option value="3">3 joueurs</option>
+                            <option value="4">4 joueurs</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="groupGameMode">Mode de jeu</label>
+                        <select id="groupGameMode" v-model="groupForm.gameMode" required>
+                            <option value="Competitive">Competitive</option>
+                            <option value="Unrated">Unrated</option>
+                            <option value="Spike Rush">Spike Rush</option>
+                            <option value="Custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="groupLanguage">Langue</label>
+                        <select id="groupLanguage" v-model="groupForm.language" required>
+                            <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="groupAvailability">Disponibilité</label>
+                        <textarea id="groupAvailability" v-model="groupForm.availability" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="groupDescription">Description</label>
+                        <textarea id="groupDescription" v-model="groupForm.description" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="createGroup" class="btn-primary">Publier</button>
+                    <button @click="showCreateGroupModal = false" class="btn-secondary">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Modal -->
+        <div v-if="showContactModal" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Contacter {{ contactTarget.name }}</h3>
+                    <button @click="showContactModal = false" class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="contact-info" v-if="contactTarget.discord">
+                        <p><strong>Discord:</strong> {{ contactTarget.discord }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactMessage">Message</label>
+                        <textarea id="contactMessage" v-model="contactForm.message" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="sendMessage" class="btn-primary">Envoyer</button>
+                    <button @click="showContactModal = false" class="btn-secondary">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading indicator for sections -->
+        <div v-if="isLoading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <!-- Error message display -->
+        <div v-if="error" class="error-message">
+            {{ error }}
+            <button @click="error = null" class="close-error">&times;</button>
+        </div>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="/CE8202C0-9156-4B9E-B217-F477251A6BC0_1.jpg" alt="QMD Esport Logo" class="logo-small">
+                    <p>QMD Esport</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Liens rapides</h4>
+                    <ul>
+                        <li><a href="#" @click.prevent="currentPage = 'home'">Accueil</a></li>
+                        <li><a href="#" @click.prevent="currentPage = 'players'">Joueurs LFT</a></li>
+                        <li><a href="#" @click.prevent="currentPage = 'teams'">Équipes LFP</a></li>
+                        <li><a href="#" @click.prevent="currentPage = 'scrims'">Scrims</a></li>
+                        <li><a href="#" @click.prevent="currentPage = 'groups'">Groupes</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Suivez-nous</h4>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-discord"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitch"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 QMD Esport. Tous droits réservés.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="scripts/app.js"></script>
+</body>
+</html>
