@@ -1,0 +1,19 @@
+{
+    "users": [
+        {
+            "id": "admin1",
+            "username": "QMD France",
+            "email": "admin@qmdesport.fr",
+            "password": "Gv8!xP4@zW2#rT6$Lm9%qY7&bJ5^dN",
+            "isOfficial": true,
+            "rank": "Radiant",
+            "role": "Flex",
+            "agents": ["Jett", "Reyna", "Sage", "Omen", "Sova"],
+            "discord": "QMDFrance#0001",
+            "about": "Compte officiel QMD Esport France",
+            "availability": "Disponible pour des questions sur le Discord",
+            "createdAt": "2023-01-01T00:00:00.000Z"
+        }
+    ]
+}
+
